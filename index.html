@@ -1,87 +1,179 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <title>Controle de Estoque</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 400px;
-            margin: 40px auto;
-        }
-
-        label {
-            display: block;
-            margin-top: 10px;
-        }
-
-        input, button {
-            width: 100%;
-            padding: 8px;
-            margin-top: 5px;
-        }
-
-        button {
-            margin-top: 15px;
-            cursor: pointer;
-        }
-
-        #msg {
-            margin-top: 15px;
-            font-weight: bold;
-        }
-    </style>
+<meta charset="UTF-8">
+<title>Mini CRM - Conectado à Planilha</title>
+<style>
+/* Layout moderno */
+* { box-sizing: border-box; margin:0; padding:0; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; }
+body { background:#f4f6f8; display:flex; justify-content:center; padding:40px 20px;}
+.container{background:#fff;padding:30px 40px;border-radius:12px;max-width:800px;width:100%;box-shadow:0 8px 20px rgba(0,0,0,0.1);}
+h2,h3{margin-bottom:20px;color:#2c3e50;}
+form label{display:block;margin-top:15px;color:#34495e;}
+form input{width:100%;padding:10px 12px;margin-top:5px;border:1px solid #ccc;border-radius:8px;transition:all 0.3s;}
+form input:focus{border-color:#3498db;box-shadow:0 0 5px rgba(52,152,219,0.3);outline:none;}
+button{margin-top:20px;width:100%;padding:12px;background:#3498db;color:#fff;border:none;border-radius:8px;font-size:16px;cursor:pointer;transition:all 0.3s;}
+button:hover{background:#2980b9;}
+#msg{margin-top:15px;font-weight:bold;text-align:center;}
+#busca{margin-top:20px;padding:8px 10px;width:100%;border:1px solid #ccc;border-radius:8px;}
+table{width:100%;border-collapse:collapse;margin-top:20px;border-radius:12px;overflow:hidden;box-shadow:0 5px 15px rgba(0,0,0,0.05);}
+th,td{padding:12px 15px;text-align:left;}
+thead{background:#3498db;color:#fff;cursor:pointer;}
+tbody tr:nth-child(even){background:#f2f2f2;}
+tbody tr:hover{background:#d6eaf8;}
+.btn{padding:5px 10px;border-radius:6px;border:none;color:#fff;cursor:pointer;font-size:14px;margin-right:5px;}
+.btn-editar{background:#f39c12;} .btn-editar:hover{background:#e67e22;}
+.btn-apagar{background:#e74c3c;} .btn-apagar:hover{background:#c0392b;}
+@media(max-width:700px){.container{padding:20px;}th,td{font-size:14px;padding:8px;}}
+</style>
 </head>
 <body>
+<div class="container">
+<h2>Mini CRM - Conectado à Planilha</h2>
 
-    <h2>Cadastro de Estoque</h2>
+<form id="clienteForm">
+<label>Nome: <input type="text" name="nome" required></label>
+<label>Endereço: <input type="text" name="endereco" required></label>
+<label>Telefone: <input type="text" name="telefone" required></label>
+<label>CPF: <input type="text" name="cpf" required></label>
+<button type="submit">Cadastrar</button>
+</form>
 
-    <form id="estoqueForm">
-        <label>
-            Produto
-            <input type="text" name="produto" required>
-        </label>
+<p id="msg"></p>
+<input type="text" id="busca" placeholder="Buscar por Nome ou CPF...">
 
-        <label>
-            Quantidade
-            <input type="number" name="quantidade" required>
-        </label>
+<h3>Clientes Cadastrados</h3>
+<table id="tabelaClientes">
+<thead>
+<tr>
+<th data-key="data">Data/Hora &#x25B2;&#x25BC;</th>
+<th data-key="nome">Nome &#x25B2;&#x25BC;</th>
+<th>Endereço</th>
+<th>Telefone</th>
+<th>CPF</th>
+<th>Ações</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+</div>
 
-        <label>
-            Local
-            <input type="text" name="local">
-        </label>
+<script>
+const form=document.getElementById("clienteForm");
+const msg=document.getElementById("msg");
+const tabela=document.getElementById("tabelaClientes").querySelector("tbody");
+const busca=document.getElementById("busca");
 
-        <button type="submit">Enviar</button>
-    </form>
+// Substitua pela URL do Apps Script
+const URL_APPS_SCRIPT="URL_DO_APPS_SCRIPT_AQUI";
 
-    <p id="msg"></p>
+// Funções
+async function carregarClientesPlanilha(){
+    try{
+        const res=await fetch(URL_APPS_SCRIPT);
+        const dados=await res.json();
+        tabela.innerHTML="";
+        dados.forEach((item,index)=>adicionarLinhaTabela(item));
+    }catch(e){console.error(e);}
+}
 
-    <script>
-        const form = document.getElementById("estoqueForm");
-        const msg = document.getElementById("msg");
+function adicionarLinhaTabela(item){
+    const tr=document.createElement("tr");
+    tr.dataset.rowId=item.rowId;
+    tr.innerHTML=`
+    <td>${item.data}</td>
+    <td>${item.nome}</td>
+    <td>${item.endereco}</td>
+    <td>${item.telefone}</td>
+    <td>${item.cpf}</td>
+    <td>
+        <button class="btn btn-editar">Editar</button>
+        <button class="btn btn-apagar">Apagar</button>
+    </td>`;
+    tabela.appendChild(tr);
 
-        form.addEventListener("submit", function (e) {
-            e.preventDefault();
+    tr.querySelector(".btn-apagar").addEventListener("click",()=>apagarCliente(item.rowId));
+    tr.querySelector(".btn-editar").addEventListener("click",()=>{
+        form.nome.value=item.nome;
+        form.endereco.value=item.endereco;
+        form.telefone.value=item.telefone;
+        form.cpf.value=item.cpf;
+        form.dataset.rowId=item.rowId;
+        msg.innerText="⚠️ Editando cliente.";
+    });
+}
 
-            msg.innerText = "Enviando...";
+// Validação simples
+function validarCPF(cpf){return cpf.replace(/\D/g,'').length===11;}
+function validarTelefone(tel){return tel.replace(/\D/g,'').length>=10;}
 
-            const dados = new FormData(form);
+// Adicionar ou editar
+form.addEventListener("submit",async(e)=>{
+    e.preventDefault();
+    const nome=form.nome.value.trim();
+    const endereco=form.endereco.value.trim();
+    const telefone=form.telefone.value.trim();
+    const cpf=form.cpf.value.trim();
+    const acao=form.dataset.rowId?"editar":"adicionar";
+    const rowId=form.dataset.rowId||"";
 
-            fetch("https://script.google.com/macros/s/AKfycbwMAqEjygGcpiigcsOK_x8jXyHsYZhaTDxGMKDSyHGLZQ8ysoIZv8r_3aaLIN7uvvo/exec", {
-                method: "POST",
-                body: dados
-            })
-            .then(res => res.text())
-            .then(() => {
-                msg.innerText = "✅ Dados enviados com sucesso!";
-                form.reset();
-            })
-            .catch(() => {
-                msg.innerText = "❌ Erro ao enviar os dados.";
-            });
+    if(!validarCPF(cpf)){msg.innerText="❌ CPF inválido (11 números).";return;}
+    if(!validarTelefone(telefone)){msg.innerText="❌ Telefone inválido (mínimo 10 números).";return;}
+
+    const fd=new FormData();
+    fd.append("nome",nome);
+    fd.append("endereco",endereco);
+    fd.append("telefone",telefone);
+    fd.append("cpf",cpf);
+    fd.append("acao",acao);
+    fd.append("rowId",rowId);
+
+    try{
+        await fetch(URL_APPS_SCRIPT,{method:"POST",body:fd});
+        msg.innerText="✅ Cliente salvo com sucesso!";
+        form.reset();
+        form.dataset.rowId="";
+        carregarClientesPlanilha();
+    }catch(e){msg.innerText="❌ Erro ao salvar cliente.";}
+});
+
+// Apagar cliente
+async function apagarCliente(rowId){
+    const fd=new FormData();
+    fd.append("acao","apagar");
+    fd.append("rowId",rowId);
+    try{
+        await fetch(URL_APPS_SCRIPT,{method:"POST",body:fd});
+        msg.innerText="✅ Cliente apagado!";
+        carregarClientesPlanilha();
+    }catch(e){msg.innerText="❌ Erro ao apagar cliente.";}
+}
+
+// Busca em tempo real
+busca.addEventListener("input",()=>{
+    const term=busca.value.toLowerCase();
+    tabela.querySelectorAll("tr").forEach(tr=>{
+        const nome=tr.children[1].innerText.toLowerCase();
+        const cpf=tr.children[4].innerText.toLowerCase();
+        tr.style.display=(nome.includes(term)||cpf.includes(term))?"":"none";
+    });
+});
+
+// Ordenação
+document.querySelectorAll("th[data-key]").forEach(th=>{
+    th.addEventListener("click",()=>{
+        const key=th.dataset.key;
+        fetch(URL_APPS_SCRIPT).then(res=>res.json()).then(dados=>{
+            let asc = !th.asc; th.asc=asc;
+            dados.sort((a,b)=>{if(a[key]<b[key])return asc?-1:1;if(a[key]>b[key])return asc?1:-1;return 0;});
+            tabela.innerHTML="";
+            dados.forEach(item=>adicionarLinhaTabela(item));
         });
-    </script>
+    });
+});
 
+// Inicializa
+carregarClientesPlanilha();
+</script>
 </body>
 </html>
